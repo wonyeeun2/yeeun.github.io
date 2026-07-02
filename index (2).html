@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>온몸맞춤 · 체성분 기반 적응형 운동처방 & AI 자세코칭</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAF0EE; --surface-3:#DEE8E5;
+    --border:#D7E0DD; --ink:#122420; --ink-dim:#4C5F5A; --ink-faint:#82938E;
+    --teal:#0E7C74; --teal-deep:#095B56; --teal-soft:rgba(14,124,116,.12);
+    --coral:#E85D3D; --coral-soft:rgba(232,93,61,.13);
+    --amber:#D9A441; --green:#1E9A5C; --green-soft:rgba(30,154,92,.14);
+    --red:#D6483A; --red-soft:rgba(214,72,58,.13);
+    --radius:16px; --radius-sm:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+  .app{max-width:980px;margin:0 auto;padding:26px 18px 90px;}
+  ::selection{background:var(--teal-soft);}
+
+  header.top{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;padding-bottom:22px;border-bottom:1px solid var(--border);}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;color:var(--coral);text-transform:uppercase;font-weight:600;}
+  h1.title{font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(24px,4.6vw,34px);letter-spacing:-.01em;margin:2px 0 0;line-height:1.12;}
+  h1.title span{color:var(--teal);}
+  .subtitle{color:var(--ink-dim);font-size:13.5px;margin-top:8px;line-height:1.6;max-width:640px;}
+  .subtitle b{color:var(--ink);}
+
+  nav.tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:22px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:4px;scrollbar-width:none;}
+  nav.tabs::-webkit-scrollbar{display:none;}
+  .tab-btn{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:12.5px;
+    padding:11px 12px;white-space:nowrap;border-radius:9px;flex:1;transition:all .15s;}
+  .tab-btn.active{color:#fff;background:var(--teal);}
+  .tab-btn:hover:not(.active){color:var(--ink);background:var(--surface);}
+
+  section.panel{display:none;animation:fade .25s ease;}
+  section.panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;}
+  .card h2{font-family:'Sora',sans-serif;font-weight:700;font-size:16px;letter-spacing:-.01em;margin:0 0 4px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .card .hint{color:var(--ink-dim);font-size:12.5px;margin:0 0 16px;line-height:1.6;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr 1fr;}}
+
+  label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;font-weight:700;}
+  input[type=text],input[type=number],select{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--ink);
+    border-radius:9px;padding:10px 12px;font-size:14px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color .15s;}
+  input:focus,select:focus{border-color:var(--teal);}
+  .field{margin-bottom:12px;}
+
+  button.btn{font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:13px;border:none;border-radius:10px;padding:11px 18px;cursor:pointer;
+    transition:filter .15s, transform .1s, opacity .15s;}
+  button.btn:active{transform:scale(.98);}
+  button.btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover:not(:disabled){filter:brightness(1.08);}
+  .btn-coral{background:var(--coral);color:#fff;}
+  .btn-coral:hover:not(:disabled){filter:brightness(1.06);}
+  .btn-ghost{background:var(--surface-2);color:var(--ink);border:1px solid var(--border);}
+  .btn-ghost:hover:not(:disabled){border-color:var(--ink-faint);}
+  .btn-danger{background:var(--red-soft);color:var(--red);border:1px solid var(--red);}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .status-msg{font-size:12.5px;margin-top:10px;padding:9px 12px;border-radius:9px;display:none;line-height:1.5;}
+  .status-msg.show{display:block;}
+  .status-ok{background:var(--green-soft);color:var(--green);}
+  .status-err{background:var(--red-soft);color:var(--red);}
+
+  /* ---- 장애유형 카드 ---- */
+  .dis-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:640px){.dis-grid{grid-template-columns:1fr;}}
+  .dis-card{border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;background:var(--surface-2);transition:all .15s;}
+  .dis-card:hover{border-color:var(--teal);}
+  .dis-card.sel{border-color:var(--teal);background:var(--teal-soft);}
+  .dis-card .nm{font-weight:800;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:6px;}
+  .dis-card .ds{font-size:11.5px;color:var(--ink-dim);margin-top:4px;line-height:1.5;}
+  .dis-card .tag{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--coral);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;display:inline-block;}
+
+  /* ---- 링 게이지(시그니처 요소) ---- */
+  .ring{--p:0;--c:var(--teal);width:58px;height:58px;border-radius:50%;position:relative;flex-shrink:0;}
+  .ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%), var(--surface-3) 0);}
+  .ring::after{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--surface);}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);}
+  .ring.lg{width:150px;height:150px;}
+  .ring.lg::after{inset:16px;}
+  .ring.lg b{font-size:30px;font-weight:600;flex-direction:column;}
+  .ring.lg b small{font-family:'Noto Sans KR',sans-serif;font-size:11px;color:var(--ink-dim);font-weight:700;margin-top:2px;}
+
+  .report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  @media(max-width:640px){.report-grid{grid-template-columns:repeat(2,1fr);}}
+  .report-tile{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px;display:flex;align-items:center;gap:10px;}
+  .report-tile .rk{font-size:10.5px;color:var(--ink-faint);font-weight:700;}
+  .report-tile .rv{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;margin-top:1px;}
+
+  details.ibody{margin-top:6px;}
+  details.ibody summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--teal);padding:8px 0;list-style:none;}
+  details.ibody summary::-webkit-details-marker{display:none;}
+  details.ibody summary::before{content:'▸ ';}
+  details.ibody[open] summary::before{content:'▾ ';}
+
+  .upload-box{border:1.5px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:var(--surface-2);margin-bottom:10px;}
+  .upload-box:hover{border-color:var(--coral);}
+  .upload-box .ic{font-size:22px;}
+  .upload-box .lbl{font-size:12.5px;color:var(--ink-dim);margin-top:4px;}
+  .beta-note{font-size:11px;color:var(--ink-faint);background:var(--surface-2);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6;}
+
+  /* ---- 운동 카드 ---- */
+  .ex-list{display:flex;flex-direction:column;gap:10px;}
+  .ex-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface-2);cursor:pointer;transition:all .15s;}
+  .ex-card:hover{border-color:var(--teal);}
+  .ex-card.picked{border-color:var(--teal);background:var(--teal-soft);}
+  .ex-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .ex-name{font-weight:800;font-size:14.5px;}
+  .ex-name .ai-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;background:var(--coral);color:#fff;padding:2px 6px;border-radius:6px;margin-left:6px;letter-spacing:.03em;vertical-align:middle;}
+  .ex-score{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);white-space:nowrap;}
+  .ex-desc{font-size:12.5px;color:var(--ink-dim);margin-top:5px;line-height:1.6;}
+  .ex-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .chip{font-size:10.5px;font-weight:700;background:var(--surface-3);color:var(--ink-dim);padding:3px 8px;border-radius:20px;}
+  .alt-note{font-size:11.5px;color:var(--amber);margin-top:8px;background:rgba(217,164,65,.13);padding:7px 9px;border-radius:8px;}
+
+  /* ---- 카메라 / 자세분석 ---- */
+  .cam-wrap{position:relative;width:100%;background:#0c1613;border-radius:12px;overflow:hidden;display:none;}
+  .cam-wrap.show{display:block;}
+  .cam-wrap video{width:100%;display:block;max-height:380px;object-fit:contain;background:#0c1613;}
+  .cam-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+  .cam-overlay{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;border-radius:20px;background:rgba(0,0,0,.55);color:#fff;}
+  .pill.rep{background:var(--coral);}
+  .flash-ok{animation:flashok .5s ease;}
+  @keyframes flashok{0%{box-shadow:0 0 0 0 rgba(30,154,92,0);}30%{box-shadow:0 0 0 8px rgba(30,154,92,.35);}100%{box-shadow:0 0 0 0 rgba(30,154,92,0);}}
+
+  .coach-panel{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center;margin-top:14px;}
+  @media(max-width:640px){.coach-panel{grid-template-columns:1fr;justify-items:center;text-align:center;}}
+  .coach-msg{font-size:14px;font-weight:700;line-height:1.5;}
+  .coach-msg.good{color:var(--green);}
+  .coach-msg.bad{color:var(--red);}
+  .coach-sub{font-size:12px;color:var(--ink-dim);margin-top:6px;line-height:1.6;}
+  .angle-tiles{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .angle-tile{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;}
+  .angle-tile .k{font-size:10px;color:var(--ink-faint);font-weight:700;}
+  .angle-tile .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;}
+
+  .simple-mode .coach-msg{font-size:22px;}
+  .simple-mode .angle-tiles{display:none;}
+
+  .plan-box{background:var(--teal-soft);border:1px solid var(--teal);border-radius:12px;padding:14px 16px;margin-top:10px;}
+  .plan-box .pt{font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:var(--teal-deep);}
+  .plan-box .pd{font-size:13px;color:var(--ink);margin-top:5px;line-height:1.6;}
+
+  .rec-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px;}
+  .rec-table th{text-align:left;color:var(--ink-faint);font-weight:700;font-size:10.5px;padding:6px 8px;border-bottom:1px solid var(--border);}
+  .rec-table td{padding:8px;border-bottom:1px solid var(--border);}
+  .empty-state{color:var(--ink-faint);font-size:12.5px;text-align:center;padding:26px 10px;}
+
+  footer.note{margin-top:24px;font-size:11.5px;color:var(--ink-faint);line-height:1.7;border-top:1px solid var(--border);padding-top:14px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <span class="eyebrow">Adaptive Fitness Coaching · Prototype</span>
+    <h1 class="title">온몸맞춤 <span>·</span> 체성분 + 장애특성 기반<br>운동추천 &amp; AI 자세코칭</h1>
+    <p class="subtitle">체중·성별·나이 같은 체성분 정보와 <b>장애유형별 신체 특성</b>을 함께 반영해 운동을 추천하고, 실시간 카메라 자세분석의 <b>허용 각도·피드백 방식</b>까지 자동으로 맞춥니다.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="t1"><span class="num">01</span> 체성분·장애특성</button>
+    <button class="tab-btn" data-tab="t2"><span class="num">02</span> 맞춤 운동추천</button>
+    <button class="tab-btn" data-tab="t3"><span class="num">03</span> AI 자세코칭</button>
+    <button class="tab-btn" data-tab="t4"><span class="num">04</span> 처방·기록</button>
+  </nav>
+
+  <!-- ============ TAB 1 ============ -->
+  <section class="panel active" id="t1">
+    <div class="card">
+      <h2>기본 체성분 입력</h2>
+      <p class="hint">인바디 용지에 있는 값을 직접 입력하세요. 운동 추천은 체중·키(BMI)·성별·나이를 기준으로 계산됩니다.</p>
+      <div class="grid3">
+        <div class="field"><label>이름</label><input type="text" id="inName" placeholder="예: 원이은"></div>
+        <div class="field"><label>성별</label><select id="inGender"><option value="여">여성</option><option value="남">남성</option></select></div>
+        <div class="field"><label>나이</label><input type="number" id="inAge" placeholder="예: 16"></div>
+        <div class="field"><label>키 (cm)</label><input type="number" id="inHeight" placeholder="예: 162"></div>
+        <div class="field"><label>체중 (kg)</label><input type="number" id="inWeight" placeholder="예: 55"></div>
+        <div class="field"><label>골격근량 (kg, 선택)</label><input type="number" id="inSmm" placeholder="예: 21.4"></div>
+      </div>
+
+      <div class="upload-box" id="ibodyUploadBox">
+        <div class="ic">📷</div>
+        <div class="lbl"><b>인바디 용지 사진으로 자동 채우기 (데모)</b></div>
+        <input type="file" id="ibodyFile" accept="image/*" style="display:none">
+      </div>
+      <div class="beta-note">⚠ 이 파일은 정적 페이지라 실제 OCR 서버가 없습니다. 사진을 올리면 <b>"AI가 인식했다고 가정한 예시값"</b>을 채워드리고, 그 값을 검토·수정한 뒤 저장하는 흐름만 미리 구현했습니다. 실서비스로 넘어갈 때 이 자리에 Vision/OCR API 호출만 연결하면 됩니다.</div>
+
+      <details class="ibody">
+        <summary>인바디 세부 항목 직접 입력 (체수분 · 단백질 · 무기질 · 내장지방 등)</summary>
+        <div class="grid3" style="margin-top:10px;">
+          <div class="field"><label>체수분 (L)</label><input type="number" id="inWater" placeholder="예: 29.8"></div>
+          <div class="field"><label>단백질 (kg)</label><input type="number" id="inProtein" placeholder="예: 8.2"></div>
+          <div class="field"><label>무기질 (kg)</label><input type="number" id="inMineral" placeholder="예: 2.9"></div>
+          <div class="field"><label>체지방률 (%)</label><input type="number" id="inPbf" placeholder="예: 24.5"></div>
+          <div class="field"><label>내장지방레벨</label><input type="number" id="inVfl" placeholder="예: 6"></div>
+          <div class="field"><label>기초대사량 (kcal)</label><input type="number" id="inBmr" placeholder="예: 1320"></div>
+        </div>
+      </details>
+
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-primary" id="saveProfileBtn">체성분 저장</button>
+      </div>
+      <div class="status-msg" id="profileStatus"></div>
+
+      <div class="report-grid" id="reportGrid" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+      <h2>장애유형 선택</h2>
+      <p class="hint">선택한 유형에 따라 <b>[03 AI 자세코칭]</b>의 허용 각도·좌우 비대칭 허용치·피드백 방식(음성/시각/단순화)이 자동으로 조정되고, <b>[02 맞춤 운동추천]</b>에서 부적합한 종목은 자동 제외·대체됩니다.</p>
+      <div class="dis-grid" id="disGrid"></div>
+      <div class="status-msg" id="disStatus"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2 ============ -->
+  <section class="panel" id="t2">
+    <div class="card">
+      <h2>맞춤 운동추천</h2>
+      <p class="hint" id="recHint">먼저 [01] 탭에서 체성분과 장애유형을 저장해주세요.</p>
+      <div class="ex-list" id="exList"></div>
+      <div class="alt-note" id="excludeNote" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 3 ============ -->
+  <section class="panel" id="t3">
+    <div class="card">
+      <h2 id="coachTitle">AI 자세코칭</h2>
+      <p class="hint" id="coachHint">[02] 탭에서 운동을 하나 선택하면 여기서 실시간 자세분석을 시작할 수 있습니다.</p>
+
+      <div class="btn-row">
+        <button class="btn btn-coral" id="startCamBtn" disabled>▶ 카메라 시작</button>
+        <button class="btn btn-ghost" id="stopCamBtn" disabled>■ 정지</button>
+        <button class="btn btn-ghost" id="resetRepBtn" disabled>횟수 초기화</button>
+      </div>
+
+      <div class="cam-wrap" id="camWrap">
+        <video id="camVideo" playsinline muted></video>
+        <canvas id="camCanvas"></canvas>
+        <div class="cam-overlay">
+          <span class="pill" id="pillState">대기</span>
+          <span class="pill rep" id="pillRep">0회</span>
+        </div>
+      </div>
+      <div class="status-msg" id="camStatus"></div>
+
+      <div class="coach-panel" id="coachPanel" style="display:none;">
+        <div class="ring lg" id="matchRing"><b id="matchRingText">0<small>일치율</small></b></div>
+        <div>
+          <div class="coach-msg" id="coachMsg">준비 중…</div>
+          <div class="coach-sub" id="coachSub">카메라 앞에서 전신이 보이도록 서 주세요.</div>
+          <div class="angle-tiles" id="angleTiles"></div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:14px;" id="saveSessionRow">
+        <button class="btn btn-primary" id="saveSessionBtn" disabled>이번 세션 기록 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 4 ============ -->
+  <section class="panel" id="t4">
+    <div class="card">
+      <h2>이번 주 · 이번 달 운동처방</h2>
+      <p class="hint">저장된 자세코칭 기록을 바탕으로 목표를 자동 생성합니다. 국민체력100 / PAPS-D 항목 구조를 참고했지만, 공식 등급 판정이 아닌 <b>자체 참고용 처방</b>입니다.</p>
+      <div id="planArea"><div class="empty-state">아직 저장된 기록이 없습니다. [03] 탭에서 자세코칭 후 기록을 저장해보세요.</div></div>
+    </div>
+    <div class="card">
+      <h2>기록 히스토리</h2>
+      <div id="historyArea"><div class="empty-state">기록이 없습니다.</div></div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-danger" id="resetAllBtn">이 기기의 모든 데이터 초기화</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">
+    프로토타입 · 자세분석은 MediaPipe Pose Landmarker(브라우저 내 실행)를 사용하며 서버로 영상이 전송되지 않습니다. 운동처방 문구는 국민체력100·PAPS-D의 구조를 참고한 자체 로직이며 의학적 진단이나 공식 체력 등급이 아닙니다. 실제 서비스 적용 전 특수체육 전문가 검수를 권장합니다.
+  </footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------------- storage (cloud → localStorage fallback) ---------------- */
+  const localFallback = {
+    _k(key, shared){ return 'omt:' + (shared?'shared:':'me:') + key; },
+    async get(key, shared){
+      try{ const v = localStorage.getItem(this._k(key, shared)); return v===null ? null : { key, value:v, shared:!!shared }; }
+      catch(e){ return null; }
+    },
+    async set(key, value, shared){
+      try{ localStorage.setItem(this._k(key, shared), value); return { key, value, shared:!!shared }; }
+      catch(e){ return null; }
+    },
+    async delete(key, shared){
+      try{ localStorage.removeItem(this._k(key, shared)); return { key, deleted:true, shared:!!shared }; }
+      catch(e){ return null; }
+    },
+    async list(prefix, shared){
+      try{
+        const out = [];
+        const pfx = this._k(prefix||'', shared);
+        for(let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if(k && k.indexOf(pfx)===0) out.push(k.slice(('omt:'+(shared?'shared:':'me:')).length));
+        }
+        return { keys: out, shared:!!shared };
+      }catch(e){ return { keys: [] }; }
+    }
+  };
+  const hasCloud = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+  const backend = hasCloud ? window.storage : localFallback;
+  async function sGet(key, shared){ try{ const r = await backend.get(key, !!shared); return r ? r.value : null; }catch(e){ return null; } }
+  async function sSet(key, value, shared){ try{ const r = await backend.set(key, value, !!shared); return !!r; }catch(e){ return false; } }
+  async function sList(prefix, shared){ try{ const r = await backend.list(prefix, !!shared); return r ? r.keys : []; }catch(e){ return []; } }
+  async function sDelete(key, shared){ try{ await backend.delete(key, !!shared); }catch(e){} }
+
+  /* ---------------- tabs ---------------- */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab==='t2') renderExerciseList();
+      if(btn.dataset.tab==='t4') renderPlanAndHistory();
+    });
+  });
+
+  /* =================================================================
+     장애유형 정의
+     romAdjust: 목표 각도를 얼마나 완화(도)할지
+     excludeMove: 자동 제외할 움직임 유형
+     feedback: voice | visual | simple | gentle | standard
+     asymTolerance: 좌우 비대칭 허용 각도(도)
+  ================================================================= */
+  const DISABILITY = {
+    none:{ label:'비장애 / 해당없음', tag:'STANDARD', desc:'표준 기준을 그대로 적용합니다.', romAdjust:0, excludeMove:[], asymTolerance:8, feedback:'standard' },
+    phys_lower_incomplete:{ label:'지체장애 · 하지 불완전마비', tag:'ROM 완화', desc:'무릎·발목 가동범위가 제한적일 수 있어 목표 각도를 완화하고, 좌우 비대칭을 중점 모니터링합니다.', romAdjust:35, excludeMove:[], asymTolerance:16, feedback:'standard' },
+    phys_lower_complete:{ label:'지체장애 · 하지 완전마비(휠체어)', tag:'하지 종목 대체', desc:'하지 기반 동작은 자동 제외하고 상지 중심 종목으로 대체 추천합니다.', romAdjust:0, excludeMove:['squat_family'], asymTolerance:16, feedback:'standard' },
+    phys_upper_incomplete:{ label:'지체장애 · 상지 불완전마비', tag:'ROM 완화', desc:'팔꿈치·어깨 가동범위를 완화하고, 편측 보상 동작 여부를 함께 확인합니다.', romAdjust:40, excludeMove:[], asymTolerance:18, feedback:'standard' },
+    phys_amputee:{ label:'지체장애 · 절단', tag:'부위별 대체', desc:'절단 부위 특성상 무리가 갈 수 있는 종목은 낮은 순위로 밀고, 저충격 종목을 우선합니다.', romAdjust:25, excludeMove:[], asymTolerance:20, feedback:'standard' },
+    visual:{ label:'시각장애', tag:'음성 피드백', desc:'화면 대신 음성 안내를 기본으로 제공합니다. 소리·말로 자세를 교정합니다.', romAdjust:0, excludeMove:[], asymTolerance:10, feedback:'voice' },
+    hearing:{ label:'청각장애', tag:'시각 피드백 강화', desc:'음성 대신 색상·큰 글씨·화면 진동 위주로 피드백합니다.', romAdjust:0, excludeMove:[], asymTolerance:10, feedback:'visual' },
+    intellectual:{ label:'지적장애', tag:'단순화 모드', desc:'문구를 짧게, 목표 횟수를 낮춰 성취감을 우선하는 단순 피드백을 씁니다.', romAdjust:15, excludeMove:[], asymTolerance:14, feedback:'simple' },
+    autism:{ label:'자폐성장애', tag:'예측가능 루틴', desc:'같은 순서를 반복하고 급격한 알림 변화를 줄인 단순 피드백을 씁니다.', romAdjust:15, excludeMove:[], asymTolerance:14, feedback:'simple' },
+    emotional:{ label:'정서·행동장애', tag:'완만한 피드백', desc:'수치 경쟁보다 자기 기록 개선에 초점을 맞춘 부드러운 피드백을 씁니다.', romAdjust:8, excludeMove:[], asymTolerance:10, feedback:'gentle' }
+  };
+
+  /* =================================================================
+     운동 카탈로그 (24종)
+     movementType: squat_family / pushup_family (실시간 AI 데모 지원)
+                   그 외는 추천·설명만 제공
+     impact: 1(저충격)~3(고충격)  bmiFit: ['under','normal','over','obese']
+  ================================================================= */
+  const EXERCISES = [
+    { id:'walk', name:'걷기', cat:'유산소', movementType:'cardio', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:true, desc:'관절 부담이 가장 적은 기초 유산소 운동. 모든 체성분·대부분의 장애유형에 우선 추천됩니다.' },
+    { id:'tt', name:'탁구', cat:'라켓', movementType:'racket', impact:1, bmiFit:['normal','over'], legIntensive:false, desc:'좁은 반경에서 반사신경·손목 협응을 훈련하는 저충격 라켓 종목.' },
+    { id:'jog', name:'조깅', cat:'유산소', movementType:'cardio', impact:2, bmiFit:['under','normal'], legIntensive:true, desc:'심폐지구력 향상에 효과적이나 무릎·발목에 걷기보다 부담이 큽니다.' },
+    { id:'tennis', name:'테니스', cat:'라켓', movementType:'racket', impact:2, bmiFit:['normal'], legIntensive:true, desc:'순발력과 전신 협응을 함께 쓰는 중~고강도 라켓 스포츠.' },
+    { id:'racquetball', name:'라켓볼', cat:'라켓', movementType:'racket', impact:3, bmiFit:['normal'], legIntensive:true, desc:'실내에서 빠른 방향전환이 많은 고강도 라켓 종목.' },
+    { id:'taekwondo', name:'태권도', cat:'무도', movementType:'martial', impact:2, bmiFit:['normal','over'], legIntensive:true, desc:'품새 중심으로 접근하면 균형감각·유연성 훈련에 좋습니다.' },
+    { id:'pushup', name:'팔굽혀펴기', cat:'근력', movementType:'pushup_family', impact:1, bmiFit:['under','normal','over'], legIntensive:false, aiAnalysis:true, desc:'상체·코어 근력 기초 종목. 무릎 대고 하는 변형으로 강도 조절이 쉽습니다.' },
+    { id:'situp', name:'윗몸일으키기', cat:'근력', movementType:'situp', impact:1, bmiFit:['under','normal','over'], legIntensive:false, desc:'복근 중심 근력 운동. 목·허리 통증이 있으면 크런치로 대체를 권장합니다.' },
+    { id:'bike', name:'자전거', cat:'유산소', movementType:'cardio', impact:1, bmiFit:['normal','over','obese'], legIntensive:true, desc:'체중 부하 없이 하지 근력·심폐지구력을 훈련할 수 있는 저충격 종목.' },
+    { id:'soccer', name:'축구', cat:'구기', movementType:'ballgame', impact:3, bmiFit:['normal'], legIntensive:true, desc:'전신 지구력과 순발력이 필요한 고강도 팀 스포츠.' },
+    { id:'squash', name:'스쿼시', cat:'라켓', movementType:'racket', impact:3, bmiFit:['normal'], legIntensive:true, desc:'짧은 시간 고강도로 체력을 소모하는 라켓 종목.' },
+    { id:'weight', name:'웨이트트레이닝', cat:'근력', movementType:'strength', impact:2, bmiFit:['under','normal','over'], legIntensive:false, desc:'부위별 근력·근비대를 목표로 하는 저항운동. 초반엔 맨몸·저중량 권장.' },
+    { id:'swim', name:'수영', cat:'유산소', movementType:'cardio', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:false, desc:'부력 덕분에 관절 부담이 가장 적어 지체장애·비만 체형 모두에 우선 추천됩니다.' },
+    { id:'kendo', name:'검도', cat:'무도', movementType:'martial', impact:2, bmiFit:['normal'], legIntensive:true, desc:'집중력과 순발력, 하체 안정성을 함께 훈련하는 무도 종목.' },
+    { id:'basketball', name:'농구', cat:'구기', movementType:'ballgame', impact:3, bmiFit:['normal'], legIntensive:true, desc:'점프·방향전환이 많아 하지 부담이 큰 고강도 구기 종목.' },
+    { id:'dumbbell', name:'덤벨체조', cat:'근력', movementType:'strength', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:false, desc:'가벼운 중량으로 전신을 순환시키는 저강도 근력 운동. 입문자·장애유형 폭넓게 적합.' },
+    { id:'hiking', name:'등산', cat:'유산소', movementType:'cardio', impact:2, bmiFit:['normal','over'], legIntensive:true, desc:'경사와 지형 변화로 하지 근력과 균형감각을 함께 훈련합니다.' },
+    { id:'gateball', name:'게이트볼', cat:'구기', movementType:'ballgame', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:false, desc:'이동 반경이 작고 접촉이 없어 이동 제한이 있어도 접근하기 쉬운 종목.' },
+    { id:'jumprope', name:'줄넘기', cat:'유산소', movementType:'cardio', impact:3, bmiFit:['normal'], legIntensive:true, desc:'짧은 시간 고강도지만 발목·무릎에 충격이 큰 편입니다.' },
+    { id:'band', name:'탄력밴드', cat:'근력', movementType:'strength', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:false, desc:'저항 강도를 밴드 색상으로 세밀하게 조절할 수 있어 장애유형 적용 폭이 가장 넓습니다.' },
+    { id:'aerobic', name:'에어로빅', cat:'유산소', movementType:'cardio', impact:2, bmiFit:['normal','over'], legIntensive:true, desc:'음악에 맞춘 전신 유산소 운동으로 리듬감·협응력을 함께 기릅니다.' },
+    { id:'badminton', name:'배드민턴', cat:'라켓', movementType:'racket', impact:2, bmiFit:['normal','over'], legIntensive:true, desc:'순발력과 어깨·손목 협응이 필요한 중강도 라켓 종목.' },
+    { id:'golf', name:'골프', cat:'기타', movementType:'other', impact:1, bmiFit:['normal','over','obese'], legIntensive:false, desc:'카트 이동이 가능해 이동 제한이 있어도 접근하기 쉬운 저강도 정밀 종목.' },
+    { id:'sit2stand', name:'앉았다 일어나기', cat:'기능성 근력', movementType:'squat_family', impact:1, bmiFit:['under','normal','over','obese'], legIntensive:true, aiAnalysis:true, desc:'하지 기능평가·재활에 자주 쓰이는 기초 기능성 운동. 실시간 무릎각도 분석이 가능합니다.' }
+  ];
+
+  /* ---------------- 상태 ---------------- */
+  let profile = null;     // {name, gender, age, height, weight, bmi, ...}
+  let disKey = 'none';
+  let pickedExId = null;
+
+  /* ---------------- 헬퍼: BMI ---------------- */
+  function bmiCategory(bmi){
+    if(bmi < 18.5) return 'under';
+    if(bmi < 23) return 'normal';
+    if(bmi < 25) return 'over';
+    return 'obese';
+  }
+  function bmiLabel(c){ return {under:'저체중', normal:'정상', over:'과체중', obese:'비만'}[c] || '-'; }
+
+  /* =================================================================
+     TAB 1 — 체성분 + 장애유형
+  ================================================================= */
+  function renderDisGrid(){
+    const grid = document.getElementById('disGrid');
+    grid.innerHTML = Object.entries(DISABILITY).map(([key,d])=>`
+      <div class="dis-card ${key===disKey?'sel':''}" data-key="${key}">
+        <div class="nm">${d.label}</div>
+        <div class="ds">${d.desc}</div>
+        <span class="tag">${d.tag}</span>
+      </div>`).join('');
+    grid.querySelectorAll('.dis-card').forEach(card=>{
+      card.addEventListener('click', async ()=>{
+        disKey = card.dataset.key;
+        renderDisGrid();
+        await sSet('omt:disability', disKey, false);
+        const st = document.getElementById('disStatus');
+        st.textContent = `"${DISABILITY[disKey].label}" 기준으로 저장되었습니다. [02],[03] 탭에 자동 반영됩니다.`;
+        st.className = 'status-msg show status-ok';
+      });
+    });
+  }
+
+  document.getElementById('ibodyUploadBox').addEventListener('click', ()=>{
+    document.getElementById('ibodyFile').click();
+  });
+  document.getElementById('ibodyFile').addEventListener('change', (e)=>{
+    if(!e.target.files || !e.target.files[0]) return;
+    // 데모: 실제 OCR 대신 예시 인식값을 채워 흐름만 보여줌
+    document.getElementById('inWeight').value ||= 58;
+    document.getElementById('inHeight').value ||= 163;
+    document.getElementById('inWater').value = 30.1;
+    document.getElementById('inProtein').value = 8.4;
+    document.getElementById('inMineral').value = 3.0;
+    document.getElementById('inPbf').value = 25.2;
+    document.getElementById('inVfl').value = 6;
+    document.getElementById('inBmr').value = 1310;
+    document.querySelector('details.ibody').open = true;
+    const st = document.getElementById('profileStatus');
+    st.textContent = '📷 사진에서 인식한 예시값을 채웠습니다 (데모). 실제 수치와 다르면 직접 수정 후 저장하세요.';
+    st.className = 'status-msg show status-ok';
+  });
+
+  document.getElementById('saveProfileBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('inName').value.trim();
+    const gender = document.getElementById('inGender').value;
+    const age = parseFloat(document.getElementById('inAge').value);
+    const height = parseFloat(document.getElementById('inHeight').value);
+    const weight = parseFloat(document.getElementById('inWeight').value);
+    const st = document.getElementById('profileStatus');
+    if(!name || !age || !height || !weight){
+      st.textContent = '이름, 나이, 키, 체중은 필수 입력입니다.';
+      st.className = 'status-msg show status-err';
+      return;
+    }
+    const bmi = weight / Math.pow(height/100, 2);
+    profile = {
+      name, gender, age, height, weight, bmi,
+      water: parseFloat(document.getElementById('inWater').value)||null,
+      protein: parseFloat(document.getElementById('inProtein').value)||null,
+      mineral: parseFloat(document.getElementById('inMineral').value)||null,
+      smm: parseFloat(document.getElementById('inSmm').value)||null,
+      pbf: parseFloat(document.getElementById('inPbf').value)||null,
+      vfl: parseFloat(document.getElementById('inVfl').value)||null,
+      bmr: parseFloat(document.getElementById('inBmr').value)||null,
+      savedAt: Date.now()
+    };
+    await sSet('omt:profile', JSON.stringify(profile), false);
+    st.textContent = `저장 완료 — BMI ${bmi.toFixed(1)} (${bmiLabel(bmiCategory(bmi))})`;
+    st.className = 'status-msg show status-ok';
+    renderReport();
+  });
+
+  function renderReport(){
+    if(!profile) return;
+    const grid = document.getElementById('reportGrid');
+    grid.style.display = 'grid';
+    const bc = bmiCategory(profile.bmi);
+    const tiles = [
+      ['BMI', profile.bmi.toFixed(1) + ` (${bmiLabel(bc)})`],
+      ['체중', profile.weight + 'kg'],
+      ['골격근량', profile.smm ? profile.smm+'kg' : '-'],
+      ['체지방률', profile.pbf ? profile.pbf+'%' : '-'],
+      ['체수분', profile.water ? profile.water+'L' : '-'],
+      ['기초대사량', profile.bmr ? profile.bmr+'kcal' : '-']
+    ];
+    grid.innerHTML = tiles.map(([k,v])=>`
+      <div class="report-tile">
+        <div class="ring" style="--p:${Math.min(100, (profile.bmi/30)*100)};--c:var(--teal)"></div>
+        <div><div class="rk">${k}</div><div class="rv">${v}</div></div>
+      </div>`).join('');
+  }
+
+  /* =================================================================
+     TAB 2 — 맞춤 운동추천
+  ================================================================= */
+  function scoreExercise(ex, prof, dis){
+    let score = 0;
+    const bc = bmiCategory(prof.bmi);
+    if(ex.bmiFit.includes(bc)) score += 3;
+    if(ex.impact===1) score += 1;
+    if(prof.age >= 60 && ex.impact>=2) score -= 3;
+    if(prof.age < 14 && ex.impact===3) score -= 1;
+    if(bc==='obese' && ex.impact>=2) score -= 2;
+    return score;
+  }
+
+  async function renderExerciseList(){
+    const hint = document.getElementById('recHint');
+    const listEl = document.getElementById('exList');
+    const noteEl = document.getElementById('excludeNote');
+    const savedProfile = await sGet('omt:profile', false);
+    const savedDis = await sGet('omt:disability', false);
+    if(savedDis) disKey = savedDis;
+    if(savedProfile){ try{ profile = JSON.parse(savedProfile); }catch(e){} }
+
+    if(!profile){
+      hint.textContent = '먼저 [01] 탭에서 체성분과 장애유형을 저장해주세요.';
+      listEl.innerHTML = '';
+      noteEl.style.display = 'none';
+      return;
+    }
+    const dis = DISABILITY[disKey] || DISABILITY.none;
+    hint.innerHTML = `<b>${profile.name}</b>님 (${profile.gender}, ${profile.age}세, BMI ${profile.bmi.toFixed(1)}·${bmiLabel(bmiCategory(profile.bmi))}) · 장애유형: <b>${dis.label}</b> 기준 추천입니다.`;
+
+    const excluded = EXERCISES.filter(ex => dis.excludeMove.includes(ex.movementType));
+    const available = EXERCISES.filter(ex => !dis.excludeMove.includes(ex.movementType))
+      .map(ex => ({ ex, score: scoreExercise(ex, profile, dis) }))
+      .sort((a,b)=> b.score - a.score);
+
+    listEl.innerHTML = available.map(({ex,score})=>`
+      <div class="ex-card ${pickedExId===ex.id?'picked':''}" data-id="${ex.id}">
+        <div class="ex-row">
+          <div class="ex-name">${ex.name}${ex.aiAnalysis?'<span class="ai-badge">AI 자세분석</span>':''}</div>
+          <div class="ex-score">추천도 ${score>=4?'●●●':score>=2?'●●○':'●○○'}</div>
+        </div>
+        <div class="ex-desc">${ex.desc}</div>
+        <div class="ex-meta">
+          <span class="chip">${ex.cat}</span>
+          <span class="chip">충격도 ${'●'.repeat(ex.impact)}${'○'.repeat(3-ex.impact)}</span>
+        </div>
+      </div>`).join('');
+
+    listEl.querySelectorAll('.ex-card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        pickedExId = card.dataset.id;
+        renderExerciseList();
+        setupCoachTab();
+      });
+    });
+
+    if(excluded.length){
+      noteEl.style.display = 'block';
+      noteEl.innerHTML = `⚠ <b>${dis.label}</b> 특성상 자동 제외된 종목: ${excluded.map(e=>e.name).join(', ')} — 대신 저충격 종목(수영·탄력밴드·게이트볼·덤벨체조 등)이 상단에 우선 배치되었습니다.`;
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+
+  /* =================================================================
+     TAB 3 — AI 자세코칭 (MediaPipe Pose Landmarker)
+  ================================================================= */
+  let poseLandmarker = null, poseLoading = null;
+  let video, canvas, ctx, rafId = null, camStream = null;
+  let repCount = 0, phase = 'up', lastVoiceAt = 0;
+  const LM = { shoulderL:11, shoulderR:12, elbowL:13, elbowR:14, wristL:15, wristR:16, hipL:23, hipR:24, kneeL:25, kneeR:26, ankleL:27, ankleR:28 };
+
+  function angleAtLm(a,b,c){
+    if(!a||!b||!c) return null;
+    const v1 = {x:a.x-b.x, y:a.y-b.y}, v2 = {x:c.x-b.x, y:c.y-b.y};
+    const dot = v1.x*v2.x + v1.y*v2.y;
+    const m1 = Math.hypot(v1.x,v1.y), m2 = Math.hypot(v2.x,v2.y);
+    if(m1===0||m2===0) return null;
+    let cos = dot/(m1*m2);
+    cos = Math.max(-1, Math.min(1, cos));
+    return Math.acos(cos) * 180/Math.PI;
+  }
+
+  async function ensurePose(statusFn){
+    if(poseLandmarker) return poseLandmarker;
+    if(!poseLoading){
+      poseLoading = (async ()=>{
+        statusFn && statusFn('AI 자세인식 모델을 불러오는 중…', true);
+        const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14');
+        const fileset = await vision.FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+        const opts = (delegate)=>({
+          baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task', delegate },
+          runningMode:'VIDEO', numPoses:1
+        });
+        try{ poseLandmarker = await vision.PoseLandmarker.createFromOptions(fileset, opts('GPU')); }
+        catch(e){ poseLandmarker = await vision.PoseLandmarker.createFromOptions(fileset, opts('CPU')); }
+        return poseLandmarker;
+      })();
+    }
+    return poseLoading;
+  }
+
+  function currentExercise(){ return EXERCISES.find(e=>e.id===pickedExId); }
+  function currentDis(){ return DISABILITY[disKey] || DISABILITY.none; }
+
+  function targetsFor(ex, dis, age){
+    const ageAdjust = age>=60 ? 15 : (age && age<12 ? 10 : 0);
+    if(ex.movementType==='squat_family'){
+      return { jointLabel:'무릎', topMin:150, bottomMax:100 + dis.romAdjust + ageAdjust };
+    }
+    if(ex.movementType==='pushup_family'){
+      return { jointLabel:'팔꿈치', topMin:150, bottomMax:110 + dis.romAdjust + ageAdjust };
+    }
+    return null;
+  }
+
+  function speak(text){
+    if(!('speechSynthesis' in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ko-KR'; u.rate = 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  function setupCoachTab(){
+    const ex = currentExercise();
+    const dis = currentDis();
+    document.getElementById('coachTitle').textContent = `AI 자세코칭 — ${ex ? ex.name : ''}`;
+    const startBtn = document.getElementById('startCamBtn');
+    const hint = document.getElementById('coachHint');
+    if(!ex){ hint.textContent = '[02] 탭에서 운동을 하나 선택하세요.'; startBtn.disabled = true; return; }
+    if(!ex.aiAnalysis){
+      hint.innerHTML = `<b>${ex.name}</b>은(는) 실시간 자세분석 데모가 아직 준비되지 않았습니다. 설명: ${ex.desc}<br>현재 데모는 <b>앉았다 일어나기 · 팔굽혀펴기</b> 두 종목의 실시간 각도 분석을 지원합니다.`;
+      startBtn.disabled = true;
+      return;
+    }
+    const t = targetsFor(ex, dis, profile ? profile.age : null);
+    hint.innerHTML = `<b>${ex.name}</b> 실시간 ${t.jointLabel}각도 분석. 현재 장애유형(<b>${dis.label}</b>) 기준으로 목표 하강각도는 <b>${t.bottomMax.toFixed(0)}° 이하</b>, 좌우 비대칭 허용치는 <b>±${dis.asymTolerance}°</b>로 자동 조정되었습니다.`;
+    startBtn.disabled = false;
+    document.getElementById('coachPanel').style.display = 'grid';
+  }
+
+  document.getElementById('startCamBtn').addEventListener('click', async ()=>{
+    const ex = currentExercise();
+    if(!ex) return;
+    const statusEl = document.getElementById('camStatus');
+    const startBtn = document.getElementById('startCamBtn');
+    startBtn.disabled = true;
+    try{
+      await ensurePose((m,ok)=>{ statusEl.textContent = m; statusEl.className = 'status-msg show ' + (ok?'status-ok':'status-err'); });
+      statusEl.className = 'status-msg';
+      camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
+      video = document.getElementById('camVideo');
+      canvas = document.getElementById('camCanvas');
+      ctx = canvas.getContext('2d');
+      video.srcObject = camStream;
+      await video.play();
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      document.getElementById('camWrap').classList.add('show');
+      document.getElementById('stopCamBtn').disabled = false;
+      document.getElementById('resetRepBtn').disabled = false;
+      document.getElementById('saveSessionBtn').disabled = false;
+      repCount = 0; phase = 'up';
+      document.getElementById('pillRep').textContent = '0회';
+      loop();
+    }catch(e){
+      statusEl.textContent = '카메라 또는 AI 모델을 불러오지 못했습니다: ' + (e && e.message ? e.message : e);
+      statusEl.className = 'status-msg show status-err';
+      startBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('stopCamBtn').addEventListener('click', stopCam);
+  function stopCam(){
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+    document.getElementById('camWrap').classList.remove('show');
+    document.getElementById('startCamBtn').disabled = false;
+    document.getElementById('stopCamBtn').disabled = true;
+  }
+  document.getElementById('resetRepBtn').addEventListener('click', ()=>{
+    repCount = 0; phase = 'up';
+    document.getElementById('pillRep').textContent = '0회';
+  });
+
+  function loop(){
+    rafId = requestAnimationFrame(loop);
+    if(!video || video.readyState < 2) return;
+    const ex = currentExercise(); const dis = currentDis();
+    const t = targetsFor(ex, dis, profile ? profile.age : null);
+    const now = performance.now();
+    const result = poseLandmarker.detectForVideo(video, now);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!result || !result.landmarks || !result.landmarks[0]) return;
+    const lm = result.landmarks[0];
+
+    // 스켈레톤 간단 표시
+    ctx.fillStyle = '#0E7C74';
+    Object.values(LM).forEach(idx=>{
+      const p = lm[idx]; if(!p) return;
+      ctx.beginPath(); ctx.arc(p.x*canvas.width, p.y*canvas.height, 4, 0, Math.PI*2); ctx.fill();
+    });
+
+    let angleL, angleR, jointLabel;
+    if(ex.movementType==='squat_family'){
+      angleL = angleAtLm(lm[LM.hipL], lm[LM.kneeL], lm[LM.ankleL]);
+      angleR = angleAtLm(lm[LM.hipR], lm[LM.kneeR], lm[LM.ankleR]);
+      jointLabel = '무릎';
+    } else {
+      angleL = angleAtLm(lm[LM.shoulderL], lm[LM.elbowL], lm[LM.wristL]);
+      angleR = angleAtLm(lm[LM.shoulderR], lm[LM.elbowR], lm[LM.wristR]);
+      jointLabel = '팔꿈치';
+    }
+    if(angleL==null || angleR==null) return;
+    const avg = (angleL+angleR)/2;
+    const asym = Math.abs(angleL-angleR);
+
+    // 매칭율: 목표 구간(top~bottom) 안에서 현재 위치를 0~100으로 환산
+    const span = t.topMin - t.bottomMax;
+    let match = span>0 ? Math.max(0, Math.min(100, ((t.topMin - avg)/span)*100)) : 0;
+    if(phase==='up') match = 100 - Math.max(0, Math.min(100, ((avg - t.bottomMax)/span)*100));
+
+    // 반복(rep) 상태머신
+    let repJustDone = false;
+    if(phase==='up' && avg <= t.bottomMax){ phase = 'down'; }
+    else if(phase==='down' && avg >= t.topMin){ phase = 'up'; repCount++; repJustDone = true; }
+
+    updateCoachUI({ avg, angleL, angleR, asym, jointLabel, match, dis, phase, repJustDone, t });
+  }
+
+  function updateCoachUI({avg, angleL, angleR, asym, jointLabel, match, dis, phase, repJustDone, t}){
+    document.getElementById('pillState').textContent = phase==='down' ? '내려가는 중' : '준비';
+    document.getElementById('pillRep').textContent = repCount + '회';
+    const ring = document.getElementById('matchRing');
+    ring.style.setProperty('--p', Math.round(match));
+    ring.style.setProperty('--c', match>=80 ? 'var(--green)' : match>=50 ? 'var(--amber)' : 'var(--coral)');
+    document.getElementById('matchRingText').innerHTML = `${Math.round(match)}<small>일치율</small>`;
+
+    const asymBad = asym > dis.asymTolerance;
+    const msgEl = document.getElementById('coachMsg');
+    const subEl = document.getElementById('coachSub');
+    const simple = dis.feedback==='simple';
+    document.getElementById('coachPanel').classList.toggle('simple-mode', simple);
+
+    let msg, sub, good;
+    if(asymBad){
+      good = false;
+      msg = simple ? '균형을 맞춰요 ⚖️' : `좌우 ${jointLabel} 각도 차이 ${asym.toFixed(0)}° (허용 ±${dis.asymTolerance}°)`;
+      sub = '한쪽으로 치우치지 않게 천천히 움직여 보세요.';
+    } else if(match >= 80){
+      good = true;
+      msg = simple ? '아주 좋아요! 👍' : '좋은 자세입니다';
+      sub = phase==='down' ? '이 자세를 잠깐 유지해보세요.' : '천천히 제자리로 돌아오세요.';
+    } else {
+      good = false;
+      msg = simple ? '조금만 더!' : (phase==='up' ? `더 깊게 움직여 목표(${t.bottomMax.toFixed(0)}°) 근처까지` : '속도를 조절해보세요');
+      sub = `현재 ${jointLabel} 각도 ${avg.toFixed(0)}°`;
+    }
+    msgEl.textContent = msg; msgEl.className = 'coach-msg ' + (good?'good':'bad');
+    subEl.textContent = sub;
+
+    document.getElementById('angleTiles').innerHTML = `
+      <div class="angle-tile"><div class="k">왼쪽 ${jointLabel}</div><div class="v">${angleL.toFixed(0)}°</div></div>
+      <div class="angle-tile"><div class="k">오른쪽 ${jointLabel}</div><div class="v">${angleR.toFixed(0)}°</div></div>
+      <div class="angle-tile"><div class="k">좌우 비대칭</div><div class="v">${asym.toFixed(0)}°</div></div>`;
+
+    if(repJustDone){
+      document.getElementById('camWrap').classList.add('flash-ok');
+      setTimeout(()=>document.getElementById('camWrap').classList.remove('flash-ok'), 500);
+      if(dis.feedback==='voice'){ speak(`${repCount}회 완료. ${good?'좋은 자세였어요.':'다음엔 좌우 균형에 더 신경 써보세요.'}`); }
+    } else if(dis.feedback==='voice' && performance.now() - lastVoiceAt > 4000){
+      lastVoiceAt = performance.now();
+      speak(msg);
+    }
+  }
+
+  document.getElementById('saveSessionBtn').addEventListener('click', async ()=>{
+    const ex = currentExercise(); if(!ex) return;
+    const session = { exId: ex.id, exName: ex.name, disKey, reps: repCount, savedAt: Date.now() };
+    const key = 'session:' + Date.now();
+    await sSet(key, JSON.stringify(session), false);
+    const st = document.getElementById('camStatus');
+    st.textContent = `기록 저장됨 — ${ex.name} ${repCount}회`;
+    st.className = 'status-msg show status-ok';
+  });
+
+  /* =================================================================
+     TAB 4 — 처방 · 기록
+  ================================================================= */
+  async function renderPlanAndHistory(){
+    const keys = await sList('session:', false);
+    const sessions = [];
+    for(const k of keys){ const raw = await sGet(k, false); if(raw){ try{ sessions.push(JSON.parse(raw)); }catch(e){} } }
+    sessions.sort((a,b)=>b.savedAt-a.savedAt);
+
+    const planEl = document.getElementById('planArea');
+    if(!sessions.length){
+      planEl.innerHTML = '<div class="empty-state">아직 저장된 기록이 없습니다. [03] 탭에서 자세코칭 후 기록을 저장해보세요.</div>';
+    } else {
+      const dis = DISABILITY[disKey] || DISABILITY.none;
+      const totalReps = sessions.reduce((s,r)=>s+r.reps,0);
+      const avgReps = Math.round(totalReps / sessions.length);
+      const weeklyGoal = Math.max(10, Math.round(avgReps * 1.15));
+      const monthlyGoal = weeklyGoal * 4;
+      planEl.innerHTML = `
+        <div class="plan-box">
+          <div class="pt">이번 주 목표</div>
+          <div class="pd">${sessions[0].exName} <b>${weeklyGoal}회 × 주 3회</b> — 최근 평균(${avgReps}회) 대비 약 15% 상향. ${dis.label!=='비장애 / 해당없음' ? `(${dis.label} 특성 반영: ${dis.desc})` : ''}</div>
+        </div>
+        <div class="plan-box">
+          <div class="pt">이번 달 목표</div>
+          <div class="pd">동일 종목 누적 <b>${monthlyGoal}회</b> 달성 시 다음 단계(반복 강도↑ 또는 세트 수↑)로 전환을 검토하세요.</div>
+        </div>`;
+    }
+
+    const histEl = document.getElementById('historyArea');
+    if(!sessions.length){
+      histEl.innerHTML = '<div class="empty-state">기록이 없습니다.</div>';
+    } else {
+      const rows = sessions.slice(0,20).map(s=>`
+        <tr><td>${new Date(s.savedAt).toLocaleString('ko-KR')}</td><td>${s.exName}</td><td>${s.reps}회</td><td>${(DISABILITY[s.disKey]||DISABILITY.none).label}</td></tr>`).join('');
+      histEl.innerHTML = `<table class="rec-table"><thead><tr><th>일시</th><th>종목</th><th>횟수</th><th>장애유형</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+  }
+
+  document.getElementById('resetAllBtn').addEventListener('click', async ()=>{
+    if(!confirm('이 기기에 저장된 체성분·장애유형·자세코칭 기록을 모두 삭제할까요?')) return;
+    await sDelete('omt:profile', false);
+    await sDelete('omt:disability', false);
+    const keys = await sList('session:', false);
+    for(const k of keys) await sDelete(k, false);
+    location.reload();
+  });
+
+  /* ---------------- init ---------------- */
+  (async function init(){
+    renderDisGrid();
+    const savedDis = await sGet('omt:disability', false);
+    if(savedDis){ disKey = savedDis; renderDisGrid(); }
+    const savedProfile = await sGet('omt:profile', false);
+    if(savedProfile){
+      try{
+        profile = JSON.parse(savedProfile);
+        document.getElementById('inName').value = profile.name || '';
+        document.getElementById('inGender').value = profile.gender || '여';
+        document.getElementById('inAge').value = profile.age || '';
+        document.getElementById('inHeight').value = profile.height || '';
+        document.getElementById('inWeight').value = profile.weight || '';
+        document.getElementById('inSmm').value = profile.smm || '';
+        document.getElementById('inWater').value = profile.water || '';
+        document.getElementById('inProtein').value = profile.protein || '';
+        document.getElementById('inMineral').value = profile.mineral || '';
+        document.getElementById('inPbf').value = profile.pbf || '';
+        document.getElementById('inVfl').value = profile.vfl || '';
+        document.getElementById('inBmr').value = profile.bmr || '';
+        renderReport();
+      }catch(e){}
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
